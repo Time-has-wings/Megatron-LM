@@ -161,7 +161,7 @@ class Partition(object):
 
         output_bin_files = {}
         output_idx_files = {}
-        builders = {}
+        builders:dict[str, indexed_dataset.IndexedDatasetBuilder] = {}
 
         for key in self.args.json_keys:
             output_bin_files[key] = "{}_{}_{}.bin".format(output_prefix,
@@ -190,35 +190,70 @@ class Partition(object):
 def get_args():
     parser = argparse.ArgumentParser()
     parser = _add_tokenizer_args(parser)
+
+    """
+        def _add_tokenizer_args(parser):
+            group = parser.add_argument_group(title='tokenizer')
+            # 词表大小(默认: None)  vocab_size
+            group.add_argument('--vocab-size', type=int, default=None, help='Size of vocab before EOD or padding.')
+            # 词表文件(默认: None)
+            group.add_argument('--vocab-file', type=str, default=None, help='Path to the vocab file.')
+            # BPE merge文件(默认: None)
+            group.add_argument('--merge-file', type=str, default=None, help='Path to the BPE merge file.')
+            # 额外词汇数量(默认: 0)
+            group.add_argument('--vocab-extra-ids', type=int, default=0, help='Number of additional vocabulary tokens. They are used for span masking in the T5 model')
+            # 词表类型(默认: None)
+            group.add_argument('--tokenizer-type', type=str,
+                            default=None,
+                            choices=['BertWordPieceLowerCase',
+                                        'BertWordPieceCase',
+                                        'GPT2BPETokenizer',
+                                        'SentencePieceTokenizer',
+                                        'GPTSentencePieceTokenizer',
+                                        'HuggingFaceTokenizer',
+                                        'Llama2Tokenizer',
+                                        'TikTokenizer',
+                                        'MultimodalTokenizer',
+                                        'NullTokenizer',
+                                        'NullMultimodalTokenizer'],
+                            help='What type of tokenizer to use.')
+            group.add_argument('--tokenizer-model', type=str, default=None, help='Sentencepiece tokenizer model.')
+            group.add_argument('--tiktoken-pattern', type=str, default=None, help='Which tiktoken pattern to use. Options: [v1, v2]')
+            group.add_argument('--tiktoken-num-special-tokens', type=int, default=1000, help='Number of special tokens in tiktoken tokenizer')
+            group.add_argument('--tiktoken-special-tokens', type=str, nargs='+', default=None, help='List of tiktoken special tokens, needs to have ["<unk>", "<s>", "</s>"]')
+            return parser
+    """
+
     group = parser.add_argument_group(title='input data')
-    group.add_argument('--input', type=str, required=True,
-                       help='Path to input JSON')
-    group.add_argument('--json-keys', nargs='+', default=['text'],
-                       help='space separate listed of keys to extract from json')
-    group.add_argument('--split-sentences', action='store_true',
-                       help='Split documents into sentences.')
-    group.add_argument('--keep-newlines', action='store_true',
-                       help='Keep newlines between sentences when splitting.')
+    # 输入JSON格式文件(必需)
+    group.add_argument('--input', type=str, required=True, help='Path to input JSON')
+    # 提取JSON中的keys
+    group.add_argument('--json-keys', nargs='+', default=['text'], help='space separate listed of keys to extract from json')
+    # 是否分割句子(默认: False)
+    group.add_argument('--split-sentences', action='store_true', help='Split documents into sentences.')
+    # 是否保留换行符(默认: False)
+    group.add_argument('--keep-newlines', action='store_true', help='Keep newlines between sentences when splitting.')
+    
     group = parser.add_argument_group(title='tokenization process')
-    group.add_argument('--append-eod', action='store_true',
-                       help='Append an <eod> token to the end of a document.')
-    group.add_argument('--lang', type=str, default='english',
-                       help='Language to use for NLTK-powered sentence splitting.')
+    # 是否添加<eod> token (默认: False)
+    group.add_argument('--append-eod', action='store_true', help='Append an <eod> token to the end of a document.')
+    # 语言(默认: english)
+    group.add_argument('--lang', type=str, default='english', help='Language to use for NLTK-powered sentence splitting.')
+    
     group = parser.add_argument_group(title='output data')
-    group.add_argument('--output-prefix', type=str, required=True,
-                       help='Path to binary output file without suffix')
+    # 输出文件前缀(必需)
+    group.add_argument('--output-prefix', type=str, required=True, help='Path to binary output file without suffix')
+    
     group = parser.add_argument_group(title='runtime')
-    group.add_argument('--workers', type=int, required=True,
-                       help=('Number of worker processes to launch.'
-                             'A good default for fast pre-processing '
-                             'is: (workers * partitions) = available CPU cores.'))
-    group.add_argument('--partitions', type=int, default=1,
-                        help='Number of file partitions')
-    group.add_argument('--log-interval', type=int, default=1000,
-                       help='Interval between progress updates')
-    group.add_argument('--keep-sequential-samples', action='store_true',
-                       help='Ensure ordering of samples in .jsonl files is '
-                            'preserved when using partitions>1.')
+    # 工作进程数(必需)
+    group.add_argument('--workers', type=int, required=True, help=('Number of worker processes to launch. A good default for fast pre-processing is: (workers * partitions) = available CPU cores.'))
+    # 文件分区数(默认: 1)
+    group.add_argument('--partitions', type=int, default=1, help='Number of file partitions')
+    # 日志间隔(默认: 1000)
+    group.add_argument('--log-interval', type=int, default=1000, help='Interval between progress updates')
+    # 是否保留顺序样本(默认: False)
+    group.add_argument('--keep-sequential-samples', action='store_true', help='Ensure ordering of samples in .jsonl files is preserved when using partitions>1.')
+    
     args = parser.parse_args()
     args.keep_empty = False
 
