@@ -16,5 +16,4 @@ onelogger.err
 data/raw_data/*.jsonl
 data/raw_data/*.parquet
 data/raw_data/*.json
-data/preprocessed_data/*.bin
-data/preprocessed_data/*.idx
+data/preprocessed_data/
